@@ -35,11 +35,19 @@ const upload = multer({ storage: cloudStorage });
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",").map(origin => origin.trim()).filter(Boolean)
-  : ["http://localhost:3000"];
+  : [];
 
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    if (
+      !origin ||
+      !process.env.ALLOWED_ORIGINS ||
+      allowedOrigins.includes(origin) ||
+      origin.startsWith("http://localhost") ||
+      origin.startsWith("http://127.0.0.1")
+    ) {
+      return cb(null, true);
+    }
     cb(new Error("Not allowed by CORS"));
   },
   credentials: true,

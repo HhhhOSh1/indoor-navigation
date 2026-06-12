@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const API_URL = "http://localhost:5000";
+const API_URL = process.env.REACT_APP_API_URL || "https://indoor-navigation-8u82.onrender.com";
 
 export default function AdminPage() {
   const [selectedFloor, setSelectedFloor] = useState(9);

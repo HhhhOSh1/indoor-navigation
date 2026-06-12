@@ -23,7 +23,7 @@ import { findPath } from "./pathfinding";
 import { generateNavigationSteps, getClosestTransitionPoint } from "./navigationUtils";
 import "./App.css";
 
-const API_URL = process.env.REACT_APP_API_URL || `http://${window.location.hostname}:5000`;
+const API_URL = process.env.REACT_APP_API_URL || "https://indoor-navigation-8u82.onrender.com";
 
 // ฟังก์ชันเล่นเสียงบี๊บแบบสังเคราะห์ (Web Audio API)
 const playBeepSound = () => {
@@ -907,7 +907,7 @@ const AdminLogin = () => {
 };
 
 /* ========== Admin Dashboard (Single Page) ========== */
-const API = process.env.REACT_APP_API_URL || `http://${window.location.hostname}:5000`;
+const API = process.env.REACT_APP_API_URL || "https://indoor-navigation-8u82.onrender.com";
 const emptyRoom  = { name: "", floor: 10, coords: [0, 0], type: "room", transitionId: "" };
 const emptyFloor = { floor: 10, name: "" };
 
