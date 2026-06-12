@@ -181,23 +181,6 @@ function cleanTurnPairs(steps, thresholdPx) {
   return out;
 }
 
-function smoothAngles(angles, window = 3) {
-  if (angles.length <= window) return angles;
-  const half   = Math.floor(window / 2);
-  const result = [];
-  for (let i = 0; i < angles.length; i++) {
-    let sinSum = 0, cosSum = 0, count = 0;
-    for (let j = i - half; j <= i + half; j++) {
-      if (j < 0 || j >= angles.length) continue;
-      sinSum += Math.sin(angles[j]);
-      cosSum += Math.cos(angles[j]);
-      count++;
-    }
-    result.push(Math.atan2(sinSum / count, cosSum / count));
-  }
-  return result;
-}
-
 function mergeStraights(steps) {
   const out = [];
   for (const s of steps) {

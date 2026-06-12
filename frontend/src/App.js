@@ -1,11 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Routes, Route, useParams, useNavigate } from "react-router-dom";
 import jsQR from "jsqr";
-import AdminPage from "./AdminPage";
 import {
   MapPin,
   Navigation,
-  Upload,
   QrCode,
   ChevronLeft,
   Map as MapIcon,
@@ -20,7 +18,7 @@ import {
 } from "lucide-react";
 import SearchDropdown from "./SearchDropdown";
 import { findPath } from "./pathfinding";
-import { generateNavigationSteps, getClosestTransitionPoint } from "./navigationUtils";
+import { generateNavigationSteps } from "./navigationUtils";
 import "./App.css";
 
 const API_URL = process.env.REACT_APP_API_URL || (window.location.port === "3000" ? `http://${window.location.hostname}:5000` : "");
