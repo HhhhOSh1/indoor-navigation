@@ -2,34 +2,66 @@ require("dotenv").config();
 
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const cloudinary = require("cloudinary").v2;
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 const app = express();
 
 /* ---------------- CLOUDINARY ---------------- */
 
+const cloudinaryCloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
+const cloudinaryApiKey = process.env.CLOUDINARY_API_KEY?.trim();
+const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
+
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: cloudinaryCloudName,
+  api_key: cloudinaryApiKey,
+  api_secret: cloudinaryApiSecret,
 });
 
-const cloudStorage = new CloudinaryStorage({
-  cloudinary,
-  params: async (req, file) => ({
-    folder: "irn-maps",
-    public_id: `floor${req.body.floor || Date.now()}`,
-    overwrite: true,
-    format: "png",
-  }),
+const hasCloudinaryConfig = [
+  cloudinaryCloudName,
+  cloudinaryApiKey,
+  cloudinaryApiSecret,
+].every(value => value && value !== "xxxx" && !value.startsWith("your_"));
+
+const localMapsDir = path.join(__dirname, "maps");
+if (!fs.existsSync(localMapsDir)) fs.mkdirSync(localMapsDir, { recursive: true });
+
+const localStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, localMapsDir),
+  filename: (req, file, cb) => {
+    const floor = req.body.floor || Date.now();
+    const ext = path.extname(file.originalname) || ".png";
+    cb(null, `floor${floor}${ext}`);
+  },
 });
 
-const upload = multer({ storage: cloudStorage });
+const upload = multer({
+  storage: hasCloudinaryConfig ? multer.memoryStorage() : localStorage,
+});
+
+const uploadBufferToCloudinary = (buffer, floor) =>
+  new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: "irn-maps",
+        public_id: `floor${floor}`,
+        overwrite: true,
+        resource_type: "image",
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }
+    );
+
+    stream.end(buffer);
+  });
 
 /* ---------------- MIDDLEWARE ---------------- */
 
@@ -122,9 +154,23 @@ app.post("/auth/login", async (req, res) => {
       return res.status(401).json({ error: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" });
     }
 
-    const valid = await bcrypt.compare(password, user.password);
+    const storedPassword = user.password || "";
+    const isBcryptHash = storedPassword.startsWith("$2a$") ||
+      storedPassword.startsWith("$2b$") ||
+      storedPassword.startsWith("$2y$");
+    const valid = isBcryptHash
+      ? await bcrypt.compare(password, storedPassword)
+      : password === storedPassword;
     if (!valid) {
       return res.status(401).json({ error: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" });
+    }
+
+    if (!isBcryptHash) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      await User.updateOne(
+        { username: user.username },
+        { $set: { password: hashedPassword } }
+      );
     }
 
     res.json({ success: true, role: user.role, username: user.username });
@@ -260,25 +306,42 @@ app.delete("/floors/:id", async (req, res) => {
 
 /* ---------------- UPLOAD MAP ---------------- */
 
-app.post("/upload-map", upload.single("map"), async (req, res) => {
-  try {
-    const floorNum = req.body.floor !== undefined ? Number(req.body.floor) : null;
-    if (floorNum === null) return res.status(400).json({ error: "กรุณาระบุ floor" });
+app.post("/upload-map", (req, res) => {
+  upload.single("map")(req, res, async (uploadErr) => {
+    if (uploadErr) {
+      console.error("Map upload middleware error:", uploadErr);
+      return res.status(500).json({ error: uploadErr.message });
+    }
 
-    // Cloudinary return URL ตรงจาก req.file.path
-    const imageUrl = req.file.path;
-    const ts = Date.now();
+    try {
+      const floorNum = req.body.floor !== undefined ? Number(req.body.floor) : null;
+      if (floorNum === null || Number.isNaN(floorNum)) {
+        return res.status(400).json({ error: "กรุณาระบุ floor" });
+      }
+      if (!req.file) {
+        return res.status(400).json({ error: "กรุณาเลือกไฟล์แผนที่" });
+      }
 
-    const updatedFloor = await Floor.findOneAndUpdate(
-      { floor: floorNum },
-      { $set: { floor: floorNum, mapImage: imageUrl, mapVersion: ts } },
-      { new: true, upsert: true }
-    );
+      const cloudinaryResult = hasCloudinaryConfig
+        ? await uploadBufferToCloudinary(req.file.buffer, floorNum)
+        : null;
+      const imageUrl = hasCloudinaryConfig
+        ? cloudinaryResult.secure_url
+        : `/maps/${req.file.filename}`;
+      const ts = Date.now();
 
-    res.json({ success: true, filename: imageUrl, imageUrl, floor: updatedFloor });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+      await Floor.collection.updateOne(
+        { floor: floorNum },
+        { $set: { floor: floorNum, mapImage: imageUrl, mapVersion: ts } },
+        { upsert: true }
+      );
+
+      res.json({ success: true, filename: imageUrl, imageUrl, floor: floorNum });
+    } catch (err) {
+      console.error("Map upload error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
 });
 
 /* ---------------- UPDATE FLOOR MAP ---------------- */
