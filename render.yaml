@@ -3,7 +3,7 @@ services:
     name: indoor-nav-api
     env: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install && npm run build
     startCommand: node backend/server.js
     healthCheckPath: /
     envVars:

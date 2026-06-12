@@ -1,17 +1,3 @@
-export function getClosestTransitionPoint(coords, rooms) {
-  const transitions = ["ลิฟท์1", "ลิฟท์2", "บรรได"];
-  let closest = null;
-  let minDist = Infinity;
-  transitions.forEach((name) => {
-    const room = rooms[name];
-    if (room && room.coords) {
-      const dist = Math.hypot(coords[0] - room.coords[0], coords[1] - room.coords[1]);
-      if (dist < minDist) { minDist = dist; closest = name; }
-    }
-  });
-  return closest;
-}
-
 /**
  * แปลงเส้นทาง เป็นขั้นตอนคำแนะนำ
  *
