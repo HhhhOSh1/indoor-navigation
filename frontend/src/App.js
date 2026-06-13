@@ -153,6 +153,7 @@ const MapPage = () => {
   const [navigationSteps, setNavigationSteps] = useState([]);
   const [activeStepIdx, setActiveStepIdx] = useState(0);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [sheetExpanded, setSheetExpanded] = useState(false);
   // navigationPhases เก็บแต่ละช่วงการเดิน: [{ floor, path }, ...]
   const [navigationPhases, setNavigationPhases] = useState([]);
 
@@ -544,180 +545,145 @@ const MapPage = () => {
           <canvas ref={canvasRef} width={800} height={1000} />
         </div>
       </div>
-      {/* Floating Controls Panel */}
+      {/* Bottom Sheet Panel */}
       {!isNavigating ? (
-        // --- แถบเลือกจุดหมายต้นทาง-ปลายทาง ---
-        <div className="floating-panel">
-          <div className="panel-header-indicator" />
+        <div className={`floating-panel ${sheetExpanded ? "half" : "collapsed"}`}>
+          {/* Drag handle — กดหรือ swipe เพื่อ expand/collapse */}
+          <div className="sheet-handle" onClick={() => setSheetExpanded(p => !p)}>
+            <div className="sheet-handle-bar" />
+          </div>
 
-          <div className="controls-container">
-            {/* กล่องระบุจุดเริ่มต้น */}
-            <div className="control-group">
-              <div className="input-header">
-                <div className="input-label">
-                  <MapPin size={16} className="text-primary" />
-                  <span>จุดเริ่มต้นของคุณ</span>
+          {/* Peek — แสดงเสมอแม้ collapsed */}
+          <div className="sheet-peek" onClick={() => setSheetExpanded(p => !p)}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div className="sheet-peek-label">
+                {startRoom && endRoom
+                  ? `${startRoom} → ${endRoom}`
+                  : startRoom
+                  ? `เริ่ม: ${startRoom} · เลือกปลายทาง`
+                  : "แตะเพื่อเลือกต้นทางและปลายทาง"}
+              </div>
+            </div>
+            <span style={{ fontSize: "1rem", color: "var(--text-hint)", marginLeft: "0.5rem", transform: sheetExpanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.3s", display: "inline-block", flexShrink: 0 }}>⌃</span>
+          </div>
+
+          {/* Content — ซ่อนเมื่อ collapsed */}
+          <div className="sheet-content">
+            <div className="controls-container">
+              <div className="control-group">
+                <div className="input-header">
+                  <div className="input-label">
+                    <MapPin size={16} className="text-primary" />
+                    <span>จุดเริ่มต้นของคุณ</span>
+                  </div>
+                  <button className="btn-inline-scan" onClick={() => { setScannerTarget("start"); setShowScanner(true); }}>
+                    <Camera size={14} /> สแกน
+                  </button>
                 </div>
-                <button
-                  className="btn-inline-scan"
-                  onClick={() => { setScannerTarget("start"); setShowScanner(true); }}
-                >
-                  <Camera size={14} /> สแกน
-                </button>
-              </div>
-              <div className="custom-select-wrapper">
-                <SearchDropdown rooms={rooms} value={startRoom} onSelect={setStartRoom} />
-              </div>
-              {startRoom && (
-                <span className="floor-badge">
-                  ชั้น {rooms[startRoom]?.floor}
-                </span>
-              )}
-            </div>
-            <div className="divider-dots">
-              <div className="dot" />
-              <div className="dot" />
-              <div className="dot" />
-            </div>
-            {/* กล่องระบุจุดหมายปลายทาง */}
-            <div className="control-group">
-              <div className="input-header">
-                <div className="input-label">
-                  <Navigation size={16} className="text-accent" />
-                  <span>ค้นหาห้องปลายทาง</span>
+                <div className="custom-select-wrapper">
+                  <SearchDropdown rooms={rooms} value={startRoom} onSelect={(r) => { setStartRoom(r); setSheetExpanded(true); }} />
                 </div>
-                <button
-                  className="btn-inline-scan"
-                  onClick={() => { setScannerTarget("end"); setShowScanner(true); }}
-                >
-                  <Camera size={14} /> สแกน
-                </button>
+                {startRoom && <span className="floor-badge">ชั้น {rooms[startRoom]?.floor}</span>}
               </div>
-              <div className="custom-select-wrapper">
-                <SearchDropdown rooms={rooms} value={endRoom} onSelect={setEndRoom} />
+              <div className="divider-dots">
+                <div className="dot" /><div className="dot" /><div className="dot" />
               </div>
-              {endRoom && (
-                <span className="floor-badge">
-                  ชั้น {rooms[endRoom]?.floor}
-                </span>
-              )}
+              <div className="control-group">
+                <div className="input-header">
+                  <div className="input-label">
+                    <Navigation size={16} className="text-accent" />
+                    <span>ค้นหาห้องปลายทาง</span>
+                  </div>
+                  <button className="btn-inline-scan" onClick={() => { setScannerTarget("end"); setShowScanner(true); }}>
+                    <Camera size={14} /> สแกน
+                  </button>
+                </div>
+                <div className="custom-select-wrapper">
+                  <SearchDropdown rooms={rooms} value={endRoom} onSelect={(r) => { setEndRoom(r); setSheetExpanded(true); }} />
+                </div>
+                {endRoom && <span className="floor-badge">ชั้น {rooms[endRoom]?.floor}</span>}
+              </div>
+              <button
+                className={`btn-start-nav ${(!startRoom || !endRoom) ? "disabled" : ""}`}
+                disabled={!startRoom || !endRoom}
+                onClick={() => { setIsNavigating(true); setSheetExpanded(false); }}
+              >
+                <Sparkles size={18} />
+                <span>เริ่มนำทาง</span>
+              </button>
             </div>
-            {/* ปุ่มเริ่มเดินทาง */}
-            <button
-              className={`btn-start-nav ${(!startRoom || !endRoom) ? "disabled" : ""}`}
-              disabled={!startRoom || !endRoom}
-              onClick={() => setIsNavigating(true)}
-            >
-              <Sparkles size={18} />
-              <span>เริ่มนำทาง</span>
-            </button>
           </div>
         </div>
       ) : (
-        // --- แถบแสดงคำสั่งนำทางทีละขั้นตอน (Step-by-Step Panel) ---
-        <div className="floating-panel step-panel">
-          <div className="panel-header-indicator" />
+        <div className={`floating-panel step-panel ${sheetExpanded ? "half" : "collapsed"}`}>
+          <div className="sheet-handle" onClick={() => setSheetExpanded(p => !p)}>
+            <div className="sheet-handle-bar" />
+          </div>
 
-          <div className="step-content-wrapper">
-            <div className="step-progress-header">
-              <span className="step-count">
-                ขั้นตอนที่ {activeStepIdx + 1} จาก {navigationSteps.length}
-              </span>
-              <div className="progress-bar-bg">
-                <div
-                  className="progress-bar-fill"
-                  style={{ width: `${((activeStepIdx + 1) / navigationSteps.length) * 100}%` }}
-                />
+          {/* Peek: step text แบบย่อ */}
+          <div className="sheet-peek" onClick={() => setSheetExpanded(p => !p)}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="progress-bar-bg" style={{ marginBottom: "4px" }}>
+                <div className="progress-bar-fill" style={{ width: `${((activeStepIdx + 1) / navigationSteps.length) * 100}%` }} />
+              </div>
+              <div className="sheet-peek-label">
+                {navigationSteps[activeStepIdx]?.text || "กำลังคำนวณ..."}
               </div>
             </div>
-            <div className="divider-dots">
-              <div className="dot"></div>
-              <div className="dot"></div>
-              <div className="dot"></div>
-            </div>
-            <div className="step-instruction-card">
-              <div className="step-icon-wrapper">
-                {navigationSteps[activeStepIdx] && getDirectionIcon(navigationSteps[activeStepIdx].action)}
-              </div>
-              <div className="step-text-wrapper">
-                <p className="step-description">
-                  {navigationSteps[activeStepIdx]?.text || "กำลังคำนวณ..."}
-                </p>
-                {navigationSteps[activeStepIdx]?.distance > 0 && (
-                  <span className="step-distance-label">
-                    ระยะทาง {navigationSteps[activeStepIdx].distance} เมตร
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="control-group">
-              <div className="input-label">
-                <Navigation size={16} className="text-accent" />
-                <span>ปลายทาง</span>
+            <span style={{ fontSize: "1rem", color: "var(--text-hint)", marginLeft: "0.5rem", transform: sheetExpanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.3s", display: "inline-block", flexShrink: 0 }}>⌃</span>
+          </div>
+
+          <div className="sheet-content">
+            <div className="step-content-wrapper">
+              <div className="step-count">ขั้นตอนที่ {activeStepIdx + 1} จาก {navigationSteps.length}</div>
+              <div className="step-instruction-card">
+                <div className="step-icon-wrapper">
+                  {navigationSteps[activeStepIdx] && getDirectionIcon(navigationSteps[activeStepIdx].action)}
+                </div>
+                <div className="step-text-wrapper">
+                  <p className="step-description">{navigationSteps[activeStepIdx]?.text || "กำลังคำนวณ..."}</p>
+                  {navigationSteps[activeStepIdx]?.distance > 0 && (
+                    <span className="step-distance-label">ระยะทาง {navigationSteps[activeStepIdx].distance} เมตร</span>
+                  )}
+                </div>
               </div>
               <div className="step-navigation-buttons">
-                <button
-                  className="btn-step-nav btn-secondary"
-                  disabled={activeStepIdx === 0}
+                <button className="btn-step-nav btn-secondary" disabled={activeStepIdx === 0}
                   onClick={() => {
                     const prevIdx = activeStepIdx - 1;
                     const prevStep = navigationSteps[prevIdx];
-                    // ถ้าย้อนกลับข้าม TRANSITION → กลับไปชั้น start
                     if (prevStep?.phase === 1 && navigationPhases.length > 1) {
                       setSelectedFloor(navigationPhases[0].floor);
                       setPath(navigationPhases[0].path);
                     }
                     setActiveStepIdx(prevIdx);
-                  }}
-                >
-                  ย้อนกลับ
-                </button>
+                  }}>ย้อนกลับ</button>
 
                 {activeStepIdx === navigationSteps.length - 1 ? (
-                  <button
-                    className="btn-step-nav btn-success-finish"
+                  <button className="btn-step-nav btn-success-finish"
                     onClick={() => {
-                      setIsNavigating(false);
-                      setActiveStepIdx(0);
-                      setNavigationPhases([]);
-                      setStartRoom(null);
-                      setEndRoom(null);
-                      setPath([]);
-                      navigate("/");
-                    }}
-                  >
-                    🎉 ถึงจุดหมายแล้ว!
-                  </button>
+                      setIsNavigating(false); setActiveStepIdx(0);
+                      setNavigationPhases([]); setStartRoom(null);
+                      setEndRoom(null); setPath([]); navigate("/");
+                    }}>🎉 ถึงจุดหมายแล้ว!</button>
                 ) : (
-                  <button
-                    className="btn-step-nav btn-primary"
+                  <button className="btn-step-nav btn-primary"
                     onClick={() => {
                       const curStep = navigationSteps[activeStepIdx];
-                      // ถ้า step ปัจจุบันคือ TRANSITION → switch ชั้นทันที
                       if (curStep?.switchToFloor !== undefined && navigationPhases.length > 1) {
                         setSelectedFloor(curStep.switchToFloor);
                         setPath(navigationPhases[1].path);
                       }
                       setActiveStepIdx(prev => prev + 1);
-                    }}
-                  >
-                    ถัดไป
-                  </button>
+                    }}>ถัดไป</button>
                 )}
               </div>
-              <button
-                className="btn-cancel-nav"
+              <button className="btn-cancel-nav"
                 onClick={() => {
-                  setIsNavigating(false);
-                  setActiveStepIdx(0);
+                  setIsNavigating(false); setActiveStepIdx(0);
                   setNavigationPhases([]);
-                  if (startRoom && rooms[startRoom]?.floor) {
-                    setSelectedFloor(rooms[startRoom].floor);
-                  }
-                }}
-              >
-                ยกเลิกการนำทาง
-              </button>
+                  if (startRoom && rooms[startRoom]?.floor) setSelectedFloor(rooms[startRoom].floor);
+                }}>ยกเลิกการนำทาง</button>
             </div>
           </div>
         </div>
@@ -1033,8 +999,16 @@ const AdminDashboard = () => {
       formData.append("floor", String(mapUploadFloor));
       formData.append("map", mapFile);
       const res  = await fetch(`${API}/upload-map`, { method: "POST", body: formData });
-      const data = await res.json();
-      if (data.filename || data.imageUrl) {
+      const raw = await res.text();
+      let data = {};
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        data = { error: raw || res.statusText };
+      }
+      if (!res.ok) {
+        flash("❌ อัปโหลดไม่สำเร็จ: " + (data.error || res.statusText), false);
+      } else if (data.filename || data.imageUrl) {
         flash(`✅ อัปโหลดแผนที่ชั้น ${mapUploadFloor} สำเร็จ`);
         loadFloors();
       } else {

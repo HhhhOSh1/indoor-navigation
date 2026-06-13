@@ -322,17 +322,41 @@ body {
 }
 
 @media (max-width: 767px) {
+  .map-header {
+    min-height: 54px;
+    padding: 0.45rem 0.7rem;
+    gap: 0.45rem;
+  }
+
   .header-left, .header-right {
     width: auto;
   }
   .header-center {
-    gap: 8px;
+    justify-content: flex-start;
+    gap: 6px;
+    min-width: 0;
   }
   .header-brand {
-    font-size: 1.1rem;
+    font-size: 0.95rem;
+    max-width: 11.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
+  .header-separator,
   .header-page-title {
-    font-size: 0.9rem;
+    display: none;
+  }
+  .btn-back {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+  .btn-header-scanner {
+    min-height: 38px;
+    padding: 8px 11px;
+    border-radius: 12px;
+    font-size: 0.78rem;
   }
 }
 
@@ -456,35 +480,221 @@ body {
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
 }
 
-/* ================== Controls & Panels ================== */
+/* ================== Map Layout ================== */
+.map-layout {
+  background: var(--bg-page);
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* ================== Map Body ================== */
+.map-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  min-height: 0;
+}
+
+/* ================== Canvas Area ================== */
+.canvas-wrapper {
+  /* แผนที่ขยายเต็มพื้นที่ทั้งหมด */
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.canvas-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.canvas-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+.canvas-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.15);
+  border-radius: 4px;
+}
+.canvas-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.3);
+}
+
+.canvas-card {
+  position: relative;
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(99, 102, 241, 0.08);
+  display: inline-block;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.canvas-card canvas {
+  display: block;
+  max-width: 100%;
+}
+
+/* ================== Floor Tag ================== */
+.canvas-floor-tag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(15, 23, 42, 0.8);
+  color: #f1f5f9;
+  padding: 6px 14px;
+  border-radius: 24px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 10;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  letter-spacing: 0.3px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* ================== Floor Selector ================== */
+.floor-selector {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 4px;
+  border-radius: 12px;
+  z-index: 10;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  gap: 4px;
+}
+
+.floor-btn {
+  background: transparent;
+  color: #94a3b8;
+  border: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.floor-btn:hover { color: #ffffff; background: rgba(255, 255, 255, 0.1); }
+.floor-btn.active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+}
+
+/* ================== Bottom Sheet (mobile) ================== */
 .floating-panel {
-  background: rgba(255, 255, 255, 0.8);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border-top: 1px solid var(--border);
-  padding: 1.25rem 1.25rem 1.5rem;
-  box-shadow: var(--shadow-panel);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 32px rgba(79, 70, 229, 0.1);
+  padding: 0 1.25rem 1.5rem;  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  /* ความสูง collapsed = แค่ drag handle + preview */
+  max-height: 80dvh;
+  overflow-y: auto;
+
+  /* animation */
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.floating-panel.collapsed {
+  /* แสดงแค่ 56px: drag handle + 1 บรรทัดสั้นๆ */
+  transform: translateY(calc(100% - 56px));
+}
+
+.floating-panel.half {
+  transform: translateY(0);
+}
+
+/* Drag handle */
+.sheet-handle {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 7px 0 4px;
+  cursor: grab;
+  flex-shrink: 0;
+  touch-action: none;
+  user-select: none;
+}
+.sheet-handle-bar {
+  width: 36px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+/* Sheet peek: แสดง summary สั้นๆ ตอน collapsed */
+.sheet-peek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 0.4rem;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.sheet-peek-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+.sheet-peek-hint {
+  font-size: 0.7rem;
+  color: var(--text-hint);
+}
+
+/* ซ่อน content เมื่อ collapsed */
+.floating-panel.collapsed .sheet-content {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.floating-panel.half .sheet-content {
+  opacity: 1;
+  transition: opacity 0.2s 0.1s;
+}
+
+.sheet-content {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  max-height: 55dvh;
-  overflow-y: auto;
-  position: relative;
-  z-index: 40;
-}
-
-.floating-panel::-webkit-scrollbar {
-  width: 6px;
-}
-.floating-panel::-webkit-scrollbar-track {
-  background: transparent;
-}
-.floating-panel::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.12);
-  border-radius: 10px;
-}
-.floating-panel::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.25);
 }
 
 .controls-container {
@@ -1101,13 +1311,22 @@ body {
     align-items: stretch;
   }
 
+  /* desktop: canvas-wrapper ไม่ absolute แล้ว กลับเป็น flex */
   .canvas-wrapper {
+    position: relative;
     flex: 1;
     padding: 1.5rem;
     overflow: auto;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
   }
 
+  /* desktop: panel กลับเป็น side panel ปกติ */
   .floating-panel {
+    position: static;
+    transform: none !important;
+    transition: none;
     width: 360px;
     min-width: 340px;
     max-width: 380px;
@@ -1117,15 +1336,27 @@ body {
     padding: 1.75rem 1.5rem;
     max-height: none;
     overflow-y: auto;
-    position: static;
-    transform: none;
-    animation: none;
     border-radius: 0;
+    flex-shrink: 0;
   }
 
-  .home-layout {
-    padding: 3rem 2rem;
+  /* ซ่อน bottom sheet elements บน desktop */
+  .sheet-handle,
+  .sheet-peek {
+    display: none;
   }
+
+  /* แสดง content เสมอบน desktop */
+  .floating-panel.collapsed .sheet-content,
+  .floating-panel .sheet-content {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  /* ปุ่ม toggle sheet ซ่อนบน desktop */
+  .sheet-toggle-btn { display: none; }
+
+  .home-layout { padding: 3rem 2rem; }
 }
 
 @media (max-width: 400px) {
@@ -1398,5 +1629,140 @@ body {
   .admin-room-item {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+/* Mobile map-first layout */
+@media (max-width: 767px) {
+  .canvas-wrapper {
+    padding: 0 0 64px;
+    align-items: flex-start;
+    overscroll-behavior: contain;
+  }
+
+  .canvas-card {
+    width: 100%;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .canvas-card:hover {
+    box-shadow: none;
+  }
+
+  .canvas-card canvas {
+    width: 100%;
+    height: auto;
+  }
+
+  .canvas-floor-tag {
+    top: 8px;
+    left: 8px;
+    padding: 5px 11px;
+    font-size: 0.76rem;
+  }
+
+  .floor-selector {
+    top: 8px;
+    right: 8px;
+    border-radius: 10px;
+  }
+
+  .floor-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 7px;
+  }
+
+  .floating-panel {
+    border-radius: 16px 16px 0 0;
+    gap: 0.7rem;
+    max-height: min(58dvh, 430px);
+    padding: 0 0.9rem max(0.9rem, env(safe-area-inset-bottom));
+  }
+
+  .floating-panel.collapsed {
+    transform: translateY(calc(100% - 54px));
+  }
+
+  .step-panel {
+    max-height: min(42dvh, 320px);
+    padding-bottom: max(0.85rem, env(safe-area-inset-bottom));
+  }
+
+  .sheet-handle {
+    padding: 6px 0 3px;
+  }
+
+  .sheet-peek {
+    min-height: 36px;
+    padding-bottom: 0.35rem;
+  }
+
+  .sheet-peek-label {
+    max-width: none;
+    font-size: 0.8rem;
+  }
+
+  .sheet-content,
+  .controls-container,
+  .step-content-wrapper {
+    gap: 0.75rem;
+  }
+
+  .input-label {
+    font-size: 0.76rem;
+  }
+
+  .btn-inline-scan {
+    padding: 5px 9px;
+    font-size: 0.74rem;
+  }
+
+  .divider-dots {
+    display: none;
+  }
+
+  .btn-start-nav {
+    min-height: 44px;
+    padding: 11px;
+    font-size: 0.92rem;
+  }
+
+  .step-instruction-card {
+    gap: 0.8rem;
+    padding: 0.85rem;
+    border-radius: 14px;
+  }
+
+  .step-icon-wrapper {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+
+  .step-description {
+    font-size: 0.92rem;
+    line-height: 1.35;
+  }
+
+  .step-distance-label {
+    font-size: 0.74rem;
+  }
+
+  .step-navigation-buttons {
+    gap: 0.55rem;
+  }
+
+  .btn-step-nav {
+    min-height: 44px;
+    padding: 10px 12px;
+    font-size: 0.88rem;
+  }
+
+  .btn-cancel-nav {
+    margin-top: 0;
+    padding: 4px 12px;
   }
 }
